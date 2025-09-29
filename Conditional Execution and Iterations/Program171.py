@@ -44,72 +44,94 @@ Income Tax to be paid by an employee is: 142800.0
 
 """
 
+
+# constants
+professionalTax = 200.0
+providentFundRate = 0.11
+daRate = 0.50
+transportAllowance = 900.0
+
 # inputs
 grade_level = input("Enter the grade_level (A,B,C,D,E or F): ")
 city = int(input("Enter the city (1,2 or 3):"))
 
-# data from the table
-grade_to_basic_other = {
-    "A": (60000.0, 8000.0),
-    "B": (50000.0, 7000.0),
-    "C": (40000.0, 6000.0),
-    "D": (30000.0, 5000.0),
-    "E": (20000.0, 4000.0),
-    "F": (10000.0, 3000.0),
-}
+basic = 0
+other = 0
 
-hra_factor_by_city = {1: 0.30, 2: 0.20, 3: 0.10}
-
-PROFESSIONAL_TAX = 200.0
-PROVIDENT_FUND_RATE = 0.11
-DA_RATE = 0.50
-TRANSPORT_ALLOWANCE = 900.0
-
-# basic validation defaults (simple handling to keep consistent style)
-if grade_level not in grade_to_basic_other:
-    print("Invalid grade level")
+if grade_level == "A":
+    basic = 60000.0
+    other = 8000.0
+elif grade_level == "B":
+    basic = 50000.0
+    other = 7000.0
+elif grade_level == "C":
+    basic = 40000.0
+    other = 6000.0
+elif grade_level == "D":
+    basic = 30000.0
+    other = 5000.0
+elif grade_level == "E":
+    basic = 20000.0
+    other = 4000.0
+elif grade_level == "F":
+    basic = 10000.0
+    other = 3000.0
 else:
-    if city not in hra_factor_by_city:
-        print("Invalid city tier")
-    else:
-        basic_pay, other_allowances = grade_to_basic_other[grade_level]
+    print("Invalid grade level")
 
-        hra = hra_factor_by_city[city] * basic_pay
-        da = DA_RATE * basic_pay
-        pf = PROVIDENT_FUND_RATE * basic_pay
 
-        gross_pay = (
-            basic_pay
-            + hra
-            + da
-            + other_allowances
-            + TRANSPORT_ALLOWANCE
-            - PROFESSIONAL_TAX
-            - pf
-        )
+hra = 0
 
-        annual_income = gross_pay * 12
+if city == 1:
+    hra = 0.30 * basic
+elif city == 2:
+    hra = 0.20 * basic
+elif city == 3:
+    hra = 0.10 * basic
+else:
+    print("Invalid city tier")
 
-        # income tax calculation as per slabs
-        ai = annual_income
+
+if basic == 0 or other == 0:
+    print("Invalid grade or city level")
+else:
+
+    da = daRate * basic
+    pf = providentFundRate * basic
+
+    gross_pay = (
+        basic
+        + hra
+        + da
+        + other
+        + transportAllowance
+        - professionalTax
+        - pf
+    )
+
+    annual_income = gross_pay * 12
+
+    # income tax calculation as per slabs
+    ai = annual_income
+    tax = 0.0
+
+    if ai <= 250000:
         tax = 0.0
-        if ai <= 250000:
-            tax = 0.0
-        elif ai <= 500000:
-            tax = (ai - 250000) * 0.05
-        elif ai <= 750000:
-            tax = 12500 + (ai - 500000) * 0.10
-        elif ai <= 1000000:
-            tax = 37500 + 12500 + (ai - 750000) * 0.15  # 37,500 already includes 5%*2.5L
-        elif ai <= 1250000:
+    elif ai <= 500000:
+        tax = (ai - 250000) * 0.05
+    elif ai <= 750000:
+        tax = 12500 + (ai - 500000) * 0.10
+    elif ai <= 1000000:
+        tax = 37500 + 12500 + (ai - 750000) * 0.15  # 37,500 already includes 5%*2.5L
+    elif ai <= 1250000:
             tax = 75000 + 37500 + 12500 + (ai - 1000000) * 0.20
-        elif ai <= 1500000:
-            tax = 125000 + (ai - 1250000) * 0.25
-        else:
-            tax = 187500 + (ai - 1500000) * 0.30
+    elif ai <= 1500000:
+        tax = 125000 + (ai - 1250000) * 0.25
+    else:
+        tax = 187500 + (ai - 1500000) * 0.30
 
-        print("Gross Pay of an Employee is:", gross_pay)
-        print("Annual income of an employee is:", annual_income)
-        print("Income Tax to be paid by an employee is:", tax)
+    print("Gross Pay of an Employee is:", gross_pay)
+    print("Annual income of an employee is:", annual_income)
+    print("Income Tax to be paid by an employee is:", tax)
 
 
