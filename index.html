@@ -200,16 +200,47 @@
 
       .viewer {
         padding: 12px 14px;
-        white-space: pre-wrap;
         line-height: 1.55;
         overflow-wrap: anywhere;
         color: #dbeafe;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       }
 
+      /* Code block with line numbers and wrapping */
+      .viewer .codeblock {
+        display: block;
+      }
+
+      .viewer .code-line {
+        display: grid;
+        grid-template-columns: minmax(2ch, 4ch) 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .viewer .ln {
+        color: var(--muted);
+        text-align: right;
+        user-select: none;
+        opacity: 0.85;
+      }
+      .viewer .code {
+        white-space: pre-wrap; /* allow wrapping */
+        word-break: break-word; /* break long tokens on mobile */
+      }
+
+      /* Syntax highlighting (Python-oriented) */
+      .tok-comment { color: #7f8fa3; font-style: italic; }
+      .tok-string  { color: #a4d88f; }
+      .tok-keyword { color: #8ab4ff; }
+      .tok-builtin { color: #f6c177; }
+      .tok-number  { color: #f29e74; }
+      .tok-decorator { color: #c084fc; }
+      .tok-defname, .tok-classname { color: #53d3f3; }
+
       .viewer .note {
         color: var(--muted);
         margin-bottom: 8px;
+        font-size: 22px;
       }
 
       .results {
@@ -261,6 +292,11 @@
         aside.sidebar {
           display: none;
         }
+
+        .codeblock {
+            font-size: 10px;
+        }
+      
       }
     </style>
   </head>
@@ -482,6 +518,7 @@
           return;
         }
         const key = `${state.defaultBranch}:${path}`;
+        const fileName = path.split('/').pop().split('.').slice(0, -1).join('.');
         let content = state.contentCache.get(key);
         if (!content) {
           const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${encodeURIComponent(state.defaultBranch)}/${encodeURI(path)}`;
@@ -495,12 +532,83 @@
         }
         const viewer = document.createElement("div");
         viewer.className = "viewer";
-        viewer.innerHTML = `<div class="note">Showing ${path}</div>`;
-        const pre = document.createElement("pre");
-        pre.textContent = content;
-        viewer.appendChild(pre);
+        viewer.innerHTML = `<div class="note">${fileName}</div>`;
+        const codeBlock = document.createElement("div");
+        codeBlock.className = "codeblock";
+        const isPy = /\.py$/i.test(path);
+        const lines = isPy ? highlightPythonLines(content) : escapeHtml(content).split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const row = document.createElement("div");
+          row.className = "code-line";
+          const ln = document.createElement("span");
+          ln.className = "ln";
+          ln.textContent = String(i + 1);
+          const code = document.createElement("span");
+          code.className = "code";
+          code.innerHTML = lines[i] === "" ? "&nbsp;" : lines[i];
+          row.appendChild(ln);
+          row.appendChild(code);
+          codeBlock.appendChild(row);
+        }
+        viewer.appendChild(codeBlock);
         container.innerHTML = "";
         container.appendChild(viewer);
+      }
+
+      function escapeHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function highlightPythonLines(text) {
+        // Escape first
+        let src = escapeHtml(text);
+
+        // Placeholder-based protection to avoid overlapping replacements
+        const placeholders = [];
+        const put = (html) => {
+          const id = `@@T${placeholders.length}@@`;
+          placeholders.push(html);
+          return id;
+        };
+
+        // Triple-quoted strings (multiline)
+        src = src.replace(/((?:"""|''')[\s\S]*?(?:"""|'''|$))/g, (m) => put(`<span class="tok-string">${m}</span>`));
+
+        // Single/double quoted strings
+        src = src.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, (m) => put(`<span class="tok-string">${m}</span>`));
+
+        // Comments
+        src = src.replace(/(^|\s)(#.*?$)/gm, (m, p1, p2) => `${p1}${put(`<span class=\"tok-comment\">${p2}</span>`)}`);
+
+        // Decorators
+        src = src.replace(/(^|\s)(@[_A-Za-z][_\w\.]*)/gm, (m, p1, p2) => `${p1}${put(`<span class=\"tok-decorator\">${p2}</span>`)}`);
+
+        // def/class names
+        src = src.replace(/\b(def)(\s+)([_A-Za-z][_\w]*)/g, (m, kw, sp, name) => `<span class="tok-keyword">${kw}</span>${sp}<span class="tok-defname">${name}</span>`);
+        src = src.replace(/\b(class)(\s+)([_A-Za-z][_\w]*)/g, (m, kw, sp, name) => `<span class="tok-keyword">${kw}</span>${sp}<span class="tok-classname">${name}</span>`);
+
+        // Keywords
+        const keywords = [
+          'False','None','True','and','as','assert','async','await','break','class','continue','def','del','elif','else','except','finally','for','from','global','if','import','in','is','lambda','nonlocal','not','or','pass','raise','return','try','while','with','yield'
+        ];
+        const kwRe = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
+        src = src.replace(kwRe, '<span class="tok-keyword">$1</span>');
+
+        // Builtins (common subset)
+        const builtins = ['print','range','len','str','int','float','list','dict','set','tuple','bool','enumerate','zip','map','filter','sum','min','max','open'];
+        const biRe = new RegExp(`\\b(${builtins.join('|')})\\b`, 'g');
+        src = src.replace(biRe, '<span class="tok-builtin">$1</span>');
+
+        // Numbers
+        src = src.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)\b/g, '<span class="tok-number">$1</span>');
+
+        // Restore placeholders
+        src = src.replace(/@@T(\d+)@@/g, (_, idx) => placeholders[Number(idx)] || '');
+
+        return src.split('\n');
       }
 
       function cancelSearch() {
