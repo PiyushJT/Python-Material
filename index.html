@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Python-Material</title>
+    <title>Python Programs</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/PiyushJT/PiyushJT/refs/heads/main/icon.ico">
     <meta name="description" content="Browse and search the PiyushJT/Python-Material GitHub repository">
     <style>
       :root {
@@ -282,6 +283,11 @@
         font-size: 12px;
       }
 
+      .rootLink {
+        color: white;
+        text-decoration: none;
+      }
+
       @media (max-width: 980px) {
         .app {
           grid-template-columns: 1fr;
@@ -304,11 +310,13 @@
     <div class="app">
       <header>
         <div class="brand" title="PiyushJT/Python-Material">
-          <div class="title">Python Progs</div>
+            <div class="title">
+                <a class="rootLink" href="https://piyushjt.github.io/Python-Material/">Python Progs</a>
+            </div>
         </div>
         <form class="search" id="searchForm">
           <span class="icon" aria-hidden="true">🔎</span>
-          <input id="searchInput" type="search" placeholder="Search" autocomplete="off" />
+          <input id="searchInput" type="search" placeholder="Code, Problem, File, etc" autocomplete="off" />
         </form>
       </header>
 
@@ -519,6 +527,8 @@
         }
         const key = `${state.defaultBranch}:${path}`;
         const fileName = path.split('/').pop().split('.').slice(0, -1).join('.');
+        const prog = fileName.slice(0, 7) + " " + fileName.slice(7);
+
         let content = state.contentCache.get(key);
         if (!content) {
           const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${encodeURIComponent(state.defaultBranch)}/${encodeURI(path)}`;
@@ -532,7 +542,7 @@
         }
         const viewer = document.createElement("div");
         viewer.className = "viewer";
-        viewer.innerHTML = `<div class="note">${fileName}</div>`;
+        viewer.innerHTML = `<div class="note">${prog}</div>`;
         const codeBlock = document.createElement("div");
         codeBlock.className = "codeblock";
         const isPy = /\.py$/i.test(path);
@@ -586,10 +596,6 @@
         // Decorators
         src = src.replace(/(^|\s)(@[_A-Za-z][_\w\.]*)/gm, (m, p1, p2) => `${p1}${put(`<span class=\"tok-decorator\">${p2}</span>`)}`);
 
-        // def/class names
-        src = src.replace(/\b(def)(\s+)([_A-Za-z][_\w]*)/g, (m, kw, sp, name) => `<span class="tok-keyword">${kw}</span>${sp}<span class="tok-defname">${name}</span>`);
-        src = src.replace(/\b(class)(\s+)([_A-Za-z][_\w]*)/g, (m, kw, sp, name) => `<span class="tok-keyword">${kw}</span>${sp}<span class="tok-classname">${name}</span>`);
-
         // Keywords
         const keywords = [
           'False','None','True','and','as','assert','async','await','break','class','continue','def','del','elif','else','except','finally','for','from','global','if','import','in','is','lambda','nonlocal','not','or','pass','raise','return','try','while','with','yield'
@@ -604,6 +610,10 @@
 
         // Numbers
         src = src.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)\b/g, '<span class="tok-number">$1</span>');
+
+        // def/class names (run AFTER keyword replacements to avoid touching attributes of inserted spans)
+        src = src.replace(/\b(def)(\s+)([_A-Za-z][_\w]*)/g, (m, kw, sp, name) => `<span class="tok-keyword">${kw}</span>${sp}<span class="tok-defname">${name}</span>`);
+        src = src.replace(/\b(class)(\s+)([_A-Za-z][_\w]*)/g, (m, kw, sp, name) => `<span class="tok-keyword">${kw}</span>${sp}<span class="tok-classname">${name}</span>`);
 
         // Restore placeholders
         src = src.replace(/@@T(\d+)@@/g, (_, idx) => placeholders[Number(idx)] || '');
