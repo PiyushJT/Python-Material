@@ -133,5 +133,3 @@ else:
     print("Gross Pay of an Employee is:", gross_pay)
     print("Annual income of an employee is:", annual_income)
     print("Income Tax to be paid by an employee is:", tax)
-
-

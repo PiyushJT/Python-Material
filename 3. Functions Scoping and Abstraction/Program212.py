@@ -13,7 +13,7 @@ def to_fahrenheit(c):
     return c * (9.0/5.0) + 32.0
 
 
-choice = input("Enter unit (C/F): ").strip().upper()
+choice = input("Enter unit (C/F): ").upper()
 value = float(input("Enter value: "))
 
 if choice == 'F':

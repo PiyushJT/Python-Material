@@ -13,5 +13,3 @@ b = int(input("Enter second number: "))
 
 print("First is even" if is_even(a) else "First is odd")
 print("Second is even" if is_even(b) else "Second is odd")
-
-
