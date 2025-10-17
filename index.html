@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Python Programs</title>
     <link rel="icon" href="https://raw.githubusercontent.com/PiyushJT/PiyushJT/refs/heads/main/icon.ico">
+    <link rel="icon" href="https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/python.svg" type="image/svg+xml">
     <meta name="description" content="Browse and search the PiyushJT/Python-Material GitHub repository">
     <style>
       :root {
@@ -30,6 +31,56 @@
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
         background: var(--bg);
         color: var(--text);
+      }
+
+      /* Cool animated background for home */
+      body.home {
+        background: radial-gradient(1200px 800px at 10% 10%, #0b1220 0%, var(--bg) 50%),
+                    radial-gradient(1000px 700px at 90% 20%, rgba(79,140,255,0.08), transparent 60%),
+                    radial-gradient(900px 600px at 20% 90%, rgba(83,211,243,0.08), transparent 60%);
+        background-attachment: fixed;
+        position: relative;
+      }
+
+      body.home::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          115deg,
+          rgba(255,255,255,0.04) 0px,
+          rgba(255,255,255,0.04) 1px,
+          transparent 1px,
+          transparent 18px
+        );
+        opacity: 0.15;
+        pointer-events: none;
+        animation: drift 22s linear infinite;
+      }
+
+      @keyframes drift {
+        0% { transform: translate3d(0,0,0); }
+        100% { transform: translate3d(40px, 0, 0); }
+      }
+
+      /* Hide chrome and flatten layout on home */
+      body.home .app {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "main";
+      }
+      body.home header,
+      body.home aside.sidebar,
+      body.home .crumbs {
+        display: none;
+      }
+      body.home main.content {
+        padding: 0;
+      }
+      body.home #panel {
+        background: transparent;
+        border: none;
+        box-shadow: none;
       }
 
       .app {
@@ -150,6 +201,13 @@
         align-items: center;
         justify-content: center;
         color: var(--muted);
+      }
+
+      .tree .icon img {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        opacity: 0.9;
       }
 
       main.content {
@@ -325,6 +383,101 @@
         }
       
       }
+
+      /* Home view layout */
+      .homeWrap {
+        display: grid;
+        place-items: center;
+        min-height: calc(100dvh - 0px);
+        padding: 24px;
+      }
+
+      .homeCard {
+        width: min(920px, 92vw);
+        padding: 28px 26px;
+        border-radius: 16px;
+        background: rgba(23,26,32,0.8);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(6px);
+      }
+
+      .homeTitle {
+        margin: 0 0 14px 0;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        font-size: 22px;
+      }
+
+      .homeSubtitle {
+        margin: 0 0 18px 0;
+        color: var(--muted);
+      }
+
+      .homeSearchRow {
+        position: relative;
+        margin-top: 8px;
+      }
+
+      .homeSearchRow input[type="search"] {
+        width: 100%;
+        padding: 22px 20px 22px 56px;
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+        font-size: 20px;
+      }
+
+      .homeSearchRow input[type="search"]:focus {
+        border-color: rgba(96,165,250,0.6);
+        box-shadow: 0 0 0 6px rgba(96,165,250,0.12);
+      }
+
+      .homeSearchRow .icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: var(--muted);
+        font-size: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .homeActions {
+        margin-top: 14px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .btnPrimary {
+        padding: 12px 14px;
+        background: var(--accent);
+        color: #0b1020;
+        border: 1px solid rgba(79,140,255,0.4);
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .btnPrimary:hover { filter: brightness(1.05); }
+
+      /* Responsive tweaks for home */
+      @media (max-width: 860px) {
+        .homeWrap { place-items: start center; padding: 14px; }
+        .homeCard { width: 100%; padding: 18px; border-radius: 12px; }
+        .homeTitle { font-size: 20px; }
+        .homeSearchRow input[type="search"] { font-size: 18px; padding: 20px 18px 20px 52px; }
+        .homeActions { justify-content: stretch; }
+        .homeActions .btnPrimary { width: 100%; }
+      }
     </style>
   </head>
   <body>
@@ -336,7 +489,7 @@
             </div>
         </div>
         <form class="search" id="searchForm">
-          <span class="icon" aria-hidden="true">🔎</span>
+          <span class="icon" aria-hidden="true"><img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/a9d7747e25350a58f5bff349735fba8d43a573b5/search.svg" alt="" style="width:16px;height:16px;opacity:.9;"/></span>
           <input id="searchInput" type="search" placeholder="Code, Problem, File, etc" autocomplete="off" />
         </form>
       </header>
@@ -381,7 +534,7 @@
       function parseLocation() {
         const usp = new URLSearchParams(location.search);
         return {
-          view: usp.get("view") || "folder",
+          view: usp.get("view") || "home",
           path: usp.get("p") || "",
           q: usp.get("q") || ""
         };
@@ -450,6 +603,18 @@
         state.fileIndex = files.sort((a, b) => a.path.localeCompare(b.path));
       }
 
+      function iconForPath(path, isDir) {
+        if (isDir) return "https://raw.githubusercontent.com/PiyushJT/PiyushJT/1cadac55bb62a80e9bfdc6cc8fb9eefce1d7eee4/icons/folder.svg";
+        const ext = (path.split('.').pop() || '').toLowerCase();
+        const map = {
+          'py': 'https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/python.svg',
+          'java': 'https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/java.svg',
+          'txt': 'https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/txt.svg',
+          'csv': 'https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/csv.svg',
+        };
+        return map[ext] || 'https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/file.svg';
+      }
+
       function renderRootSidebar() {
         const rootNode = state.nodeByPath.get("");
         const ul = $("rootTree");
@@ -457,7 +622,8 @@
         const dirs = Array.from(rootNode.children.values()).filter(n => n.type === "tree").sort((a, b) => a.name.localeCompare(b.name));
         for (const dir of dirs) {
           const li = document.createElement("li");
-          li.innerHTML = `<span class="icon">📁</span><span>${dir.name}</span>`;
+          li.innerHTML = `<span class="icon">
+            <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/1cadac55bb62a80e9bfdc6cc8fb9eefce1d7eee4/icons/folder.svg" alt="📁"/></span><span>${dir.name}</span>`;
           li.addEventListener("click", () => navigate({ view: "folder", p: dir.path }));
           ul.appendChild(li);
         }
@@ -465,16 +631,19 @@
 
       function render(replacing = false) {
         const { view, path, q } = parseLocation();
+        document.body.classList.toggle('home', view === 'home');
         renderBreadcrumbs(view, path, q);
         const panelInner = $("panelInner");
-        if (view === "folder") {
+        if (view === "home") {
+          renderHome(panelInner);
+        } else if (view === "folder") {
           renderFolder(path, panelInner);
         } else if (view === "file") {
           renderFile(path, panelInner);
         } else if (view === "search") {
           renderSearch(q, panelInner);
         } else {
-          renderFolder("", panelInner);
+          renderHome(panelInner);
         }
       }
 
@@ -488,7 +657,7 @@
           a.addEventListener("click", () => navigate(st));
           bc.appendChild(a);
         };
-        add("Repo", { view: "folder", p: "" });
+        if (view !== 'home') add("Repo", { view: "folder", p: "" });
         if (view === "search") {
           const span = document.createElement("span");
           span.textContent = ` / Search: ${q}`;
@@ -504,6 +673,54 @@
           if (!isLast || view === "folder") add(label, { view: "folder", p: acc });
           else add(label, { view: "file", p: acc });
         }
+      }
+
+      function renderHome(container) {
+        const wrap = document.createElement('div');
+        wrap.className = 'homeWrap';
+        const card = document.createElement('div');
+        card.className = 'homeCard';
+        const title = document.createElement('h1');
+        title.className = 'homeTitle';
+        title.textContent = 'Python Programs';
+        const sub = document.createElement('div');
+        sub.className = 'homeSubtitle';
+        sub.textContent = 'Search problems, files, and code across the repository';
+        const form = document.createElement('form');
+        form.className = 'homeSearchRow';
+        form.setAttribute('id', 'homeSearchForm');
+        form.innerHTML = `
+          <span class="icon" aria-hidden="true">
+            <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/a9d7747e25350a58f5bff349735fba8d43a573b5/search.svg" alt="" style="width:22px;height:22px;opacity:.9;" />
+          </span>
+          <input id="homeSearchInput" type="search" placeholder="Search code, problems, files…" autocomplete="off" />
+        `;
+        const actions = document.createElement('div');
+        actions.className = 'homeActions';
+        const navBtn = document.createElement('button');
+        navBtn.type = 'button';
+        navBtn.className = 'btnPrimary';
+        navBtn.id = 'navigateBtn';
+        navBtn.textContent = 'Navigate Manually';
+        actions.appendChild(navBtn);
+        // You could add helper actions here if needed.
+
+        card.appendChild(title);
+        card.appendChild(sub);
+        card.appendChild(form);
+        card.appendChild(actions);
+        wrap.appendChild(card);
+        container.innerHTML = '';
+        container.appendChild(wrap);
+
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const q = document.getElementById('homeSearchInput').value.trim();
+          navigate({ view: 'search', q });
+        });
+        document.getElementById('navigateBtn').addEventListener('click', () => {
+          navigate({ view: 'folder', p: '' });
+        });
       }
 
       function renderFolder(path, container) {
@@ -528,7 +745,8 @@
 
         function addItem(item, isDir) {
           const li = document.createElement("li");
-          li.innerHTML = `<span class="icon">${isDir ? "📁" : "📄"}</span><span>${item.name}</span>`;
+          const iconUrl = iconForPath(item.path, isDir);
+          li.innerHTML = `<span class="icon"><img src="${iconUrl}" alt=""/></span><span>${item.name}</span>`;
           li.addEventListener("click", () => navigate({ view: isDir ? "folder" : "file", p: item.path }));
           list.appendChild(li);
         }
