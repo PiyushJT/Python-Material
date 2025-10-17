@@ -207,9 +207,30 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       }
 
+      .viewer .toolbar {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .viewer .btn {
+        padding: 6px 10px;
+        background: var(--panel-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .viewer .btn:hover {
+        filter: brightness(1.05);
+      }
+
       /* Code block with line numbers and wrapping */
       .viewer .codeblock {
         display: block;
+        font-size: 14px;
       }
 
       .viewer .code-line {
@@ -543,6 +564,36 @@
         const viewer = document.createElement("div");
         viewer.className = "viewer";
         viewer.innerHTML = `<div class="note">${prog}</div>`;
+        const toolbar = document.createElement("div");
+        toolbar.className = "toolbar";
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn";
+        copyBtn.type = "button";
+        copyBtn.textContent = "Copy code";
+        copyBtn.addEventListener("click", async () => {
+          const original = copyBtn.textContent;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(content);
+            } else {
+              const ta = document.createElement("textarea");
+              ta.value = content;
+              ta.style.position = "fixed";
+              ta.style.opacity = "0";
+              document.body.appendChild(ta);
+              ta.focus();
+              ta.select();
+              document.execCommand("copy");
+              document.body.removeChild(ta);
+            }
+            copyBtn.textContent = "Copied!";
+          } catch (_) {
+            copyBtn.textContent = "Failed";
+          } finally {
+            setTimeout(() => { copyBtn.textContent = original; }, 1200);
+          }
+        });
+        toolbar.appendChild(copyBtn);
         const codeBlock = document.createElement("div");
         codeBlock.className = "codeblock";
         const isPy = /\.py$/i.test(path);
@@ -560,6 +611,7 @@
           row.appendChild(code);
           codeBlock.appendChild(row);
         }
+        viewer.appendChild(toolbar);
         viewer.appendChild(codeBlock);
         container.innerHTML = "";
         container.appendChild(viewer);
