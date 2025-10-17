@@ -20,6 +20,7 @@
         --danger: #ef6666;
         --border: #2a2f3a;    /* subtle borders */
         --shadow: 0 4px 16px rgba(0,0,0,0.18); /* softer */
+        --mobile-header-height: 58px; /* default, updated via JS on mobile */
       }
 
       html, body {
@@ -132,6 +133,7 @@
         gap: 8px;
         max-width: 900px;
         margin-left: auto;
+        position: relative; /* for clear button */
       }
 
       .search input[type="search"] {
@@ -145,6 +147,25 @@
         transition: border-color .2s ease, box-shadow .2s ease;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
       }
+
+      /* Hide native clear (X) */
+      input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; height: 0; width: 0; }
+
+      /* Clear button shared styles */
+      .clearBtn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: 1px solid transparent;
+        padding: 4px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: none;
+      }
+      .clearBtn:hover { background: rgba(96,165,250,0.08); }
+      .clearBtn img { width: 16px; height: 16px; opacity: 0.9; }
 
       .search input[type="search"]:focus {
         border-color: rgba(96,165,250,0.6);
@@ -263,6 +284,7 @@
         overflow-wrap: anywhere;
         color: #dbeafe;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        position: relative;
       }
 
       .viewer .toolbar {
@@ -270,19 +292,34 @@
         justify-content: flex-end;
         gap: 8px;
         margin-bottom: 10px;
+        position: absolute;
+        top: 8px;
+        right: 10px;
       }
 
       .viewer .btn {
         padding: 6px 10px;
         background: var(--panel-2);
-        color: var(--text);
+        color: #FFA500;
         border: 1px solid var(--border);
         border-radius: 8px;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        line-height: 1;
       }
 
       .viewer .btn:hover {
         filter: brightness(1.05);
+      }
+
+      .viewer .btn .ico {
+        display: inline-flex;
+        width: 18px;
+        height: 18px;
+        margin: 0;
       }
 
       /* Code block with line numbers and wrapping */
@@ -378,8 +415,28 @@
           display: none;
         }
 
+
+        .crumbs {
+            margin-top: 12px;
+        }
+
         .codeblock {
             font-size: 10px;
+        }
+        /* Mobile header behavior: fixed with slide animation */
+        header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          transform: translateY(0);
+          transition: transform .24s ease;
+        }
+        body.hide-header header {
+          transform: translateY(-110%);
+        }
+        main.content {
+          padding-top: var(--mobile-header-height); /* make room for fixed header */
         }
       
       }
@@ -491,6 +548,9 @@
         <form class="search" id="searchForm">
           <span class="icon" aria-hidden="true"><img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/a9d7747e25350a58f5bff349735fba8d43a573b5/search.svg" alt="" style="width:16px;height:16px;opacity:.9;"/></span>
           <input id="searchInput" type="search" placeholder="Code, Problem, File, etc" autocomplete="off" />
+          <button type="button" class="clearBtn" id="searchClearBtn" aria-label="Clear search">
+            <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/190350a5e5b727ddc0cd3557e2d7029305bf5994/icons/cross.svg" alt="X" style="width:20px;height:20px;"/>
+          </button>
         </form>
       </header>
 
@@ -694,6 +754,9 @@
             <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/a9d7747e25350a58f5bff349735fba8d43a573b5/search.svg" alt="" style="width:22px;height:22px;opacity:.9;" />
           </span>
           <input id="homeSearchInput" type="search" placeholder="Search code, problems, files…" autocomplete="off" />
+          <button type="button" class="clearBtn" id="homeClearBtn" aria-label="Clear search">
+            <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/190350a5e5b727ddc0cd3557e2d7029305bf5994/icons/cross.svg" alt="X" style="width:22px;height:22px;" />
+          </button>
         `;
         const actions = document.createElement('div');
         actions.className = 'homeActions';
@@ -718,6 +781,13 @@
           const q = document.getElementById('homeSearchInput').value.trim();
           navigate({ view: 'search', q });
         });
+        const homeInput = document.getElementById('homeSearchInput');
+        const homeClear = document.getElementById('homeClearBtn');
+        if (homeInput && homeClear) {
+          ['input','change','focus','blur'].forEach(ev => homeInput.addEventListener(ev, () => toggleClear(homeClear, homeInput)));
+          homeClear.addEventListener('click', () => { homeInput.value=''; homeInput.focus(); toggleClear(homeClear, homeInput); });
+          toggleClear(homeClear, homeInput);
+        }
         document.getElementById('navigateBtn').addEventListener('click', () => {
           navigate({ view: 'folder', p: '' });
         });
@@ -787,7 +857,7 @@
         const copyBtn = document.createElement("button");
         copyBtn.className = "btn";
         copyBtn.type = "button";
-        copyBtn.textContent = "Copy code";
+        copyBtn.innerHTML = `<span class="ico"><img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/c91559feee6d399b3e63dbd996d019ae4b7c49f0/icons/copy.svg" style="width:18px;height:18px;opacity:.9;"/></span><span>Copy code</span>`;
         copyBtn.addEventListener("click", async () => {
           const original = copyBtn.textContent;
           try {
@@ -804,11 +874,8 @@
               document.execCommand("copy");
               document.body.removeChild(ta);
             }
-            copyBtn.textContent = "Copied!";
           } catch (_) {
             copyBtn.textContent = "Failed";
-          } finally {
-            setTimeout(() => { copyBtn.textContent = original; }, 1200);
           }
         });
         toolbar.appendChild(copyBtn);
@@ -1091,6 +1158,20 @@
         navigate({ view: "search", q });
       });
 
+      // Wire custom clear buttons
+      const headerInput = document.getElementById('searchInput');
+      const headerClear = document.getElementById('searchClearBtn');
+      const homeClearSel = '#homeClearBtn';
+      function toggleClear(btn, input) {
+        if (!btn || !input) return;
+        btn.style.display = input.value ? 'inline-flex' : 'none';
+      }
+      if (headerInput && headerClear) {
+        ['input','change','focus','blur'].forEach(ev => headerInput.addEventListener(ev, () => toggleClear(headerClear, headerInput)));
+        headerClear.addEventListener('click', () => { headerInput.value = ''; headerInput.focus(); toggleClear(headerClear, headerInput); });
+        toggleClear(headerClear, headerInput);
+      }
+
       window.addEventListener("popstate", () => render());
 
       document.addEventListener("DOMContentLoaded", () => {
@@ -1098,6 +1179,31 @@
           $("panelInner").innerHTML = `<div class="empty">Failed to load repository.</div>`;
           console.error(err);
         });
+
+        // Mobile-only header hide/show on scroll
+        let lastY = window.scrollY;
+        const mq = window.matchMedia('(max-width: 980px)');
+        const setMobileHeaderHeight = () => {
+          if (!mq.matches) return;
+          const h = document.querySelector('header');
+          if (h) {
+            const px = `${h.getBoundingClientRect().height}px`;
+            document.documentElement.style.setProperty('--mobile-header-height', px);
+          }
+        };
+        setMobileHeaderHeight();
+        window.addEventListener('resize', setMobileHeaderHeight);
+        const onScroll = () => {
+          if (!mq.matches) { document.body.classList.remove('hide-header'); return; }
+          const y = window.scrollY;
+          if (y > lastY + 6) {
+            document.body.classList.add('hide-header');
+          } else if (y < lastY - 6) {
+            document.body.classList.remove('hide-header');
+          }
+          lastY = y;
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
       });
     </script>
   </body>
