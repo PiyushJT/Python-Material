@@ -17,6 +17,7 @@ for word in list:
 
     if key not in dict.keys():
         dict[key] = []
+        
     dict[key].append(word)
 
 print(dict)

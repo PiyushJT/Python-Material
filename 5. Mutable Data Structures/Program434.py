@@ -4,5 +4,3 @@ Write a Python program to calculate the sum of the positive and negative numbers
 lambda function.
 
 """
-
-numbers = [10, -5, 3, -1, 7, -2, 8, -4]
