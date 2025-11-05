@@ -23,4 +23,14 @@ for i in lst:
 
     dict[i].append(i)
 
-print(dict)
+sorted_list = sorted(dict.items(), key = lambda x: len(x[1]), reverse = True)
+
+sorted_dict = {}
+
+for i in sorted_list:
+    key = i[0]
+    value = i[1]
+
+    sorted_dict[key] = value
+
+print(sorted_dict)
