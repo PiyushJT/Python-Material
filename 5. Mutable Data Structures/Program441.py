@@ -1,43 +1,40 @@
 """
 
-Given a list L of size N. You need to count the number of
-special elements in the given list. An element is special if removal
-of that element makes the list balanced. The list will be
-balanced if sum of even index elements is equal to the sum of odd
-elements. Also print the updated lists after removal of special elements.
+Write a python program to print all possible combinations
+from the three Digits and also count unique values inside a list
+and also find list product excluding duplicates and also
+find sum of list’s elements excluding duplicates.
 
 """
 
-def is_balanced(lst):
-    sum_even = 0
-    sum_odd = 0
 
-    for i in range(len(lst)):
-        if i % 2 == 0:
-            sum_even += lst[i]
-        else:
-            sum_odd += lst[i]
+lst = [1, 2, 3]
 
-    return sum_even == sum_odd
+combinations = []
+
+for i in range(3):
+
+    for j in range(3):
+
+        for k in range(3):
+
+            if i != j and i != k and j != k:
+                new_list = [lst[i], lst[j], lst[k]]
+
+                if new_list not in combinations:
+                    combinations.append(new_list)
+
+print(combinations)
+
+unique_list = set(lst)
+sum = 0
+prod = 1
+
+for i in unique_list:
+    sum += i
+    prod *= i
 
 
-lst = [5, 5, 2, 5, 8]
-
-ind = 0
-count = 0
-
-for i in lst:
-
-    new_list = lst[:ind] + lst[ind+1:]
-
-    if is_balanced(new_list):
-        count += 1
-        
-        print(f"Original List: {lst}")
-        print(f"Index to be removed: {ind}")
-        print(f"List after removing index: {new_list}")
-        print()
-
-    ind += 1
-
-print(f"Total number of special elements: {count}")
+print(f"uniques are {len(unique_list)}")
+print(f"prod is {prod}")
+print(f"sum is {sum}")
