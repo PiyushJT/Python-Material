@@ -1,6 +1,7 @@
 """
 
-Write Python Program to create a dictionary with the key as the first character and value as a list of words starting with
+Write Python Program to create a dictionary with the key as
+the first character and value as a list of words starting with
 that character.
 
 """
