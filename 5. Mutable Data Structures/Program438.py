@@ -31,12 +31,8 @@ def rotate_matrix(matrix):
     
     # Step 2: Reverse each row
     for i in range(n):
-        left = 0
-        right = n - 1
-        while left < right:
-            matrix[i][left], matrix[i][right] = matrix[i][right], matrix[i][left]
-            left += 1
-            right -= 1
+        matrix[i].reverse()
+
 
 # Input matrix size
 n = int(input("Enter N: "))
