@@ -1062,7 +1062,7 @@
           return;
         }
         const key = `${state.defaultBranch}:${path}`;
-        const fileName = path.split('/').pop().split('.').slice(0, -1).join('.');
+        let fileName = path.split('/').pop().split('.').slice(0, -1).join('.');
         
         if (fileName.length > 10) {
           fileName = fileName.slice(0, 10) + '...';
