@@ -28,6 +28,8 @@ while current_index < line_count:
         if inp == 'continue':
             print("\n\nPrinting next lines\n")
 
+            print(lines[current_index])
+
         elif inp == 'stop':
             break
 
