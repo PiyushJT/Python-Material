@@ -814,8 +814,10 @@
         const meta = await fetchJSON(`https://api.github.com/repos/${OWNER}/${REPO}`);
         state.defaultBranch = meta.default_branch || "main";
 
-        const tree = await fetchJSON(`https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${encodeURIComponent(state.defaultBranch)}?recursive=1`);
-        buildIndexes(tree);
+        // Load tree non-recursively and then traverse all directories
+        const rootTree = await fetchJSON(`https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${encodeURIComponent(state.defaultBranch)}`);
+        const allEntries = await loadAllEntriesRecursively(rootTree.tree, "");
+        buildIndexesFromEntries(allEntries);
         renderRootSidebar();
         render(true);
         if (!state.prefetchStarted) {
@@ -826,11 +828,62 @@
         document.body.classList.remove('preinit');
       }
 
-      function buildIndexes(tree) {
+      async function loadAllEntriesRecursively(entries, parentPath) {
+        const allEntries = [];
+        const treeEntries = [];
+        
+        // Separate files and directories
+        for (const entry of entries) {
+          if (entry.type === "blob") {
+            // File entry - construct full path and include it
+            const fullPath = parentPath ? `${parentPath}/${entry.path}` : entry.path;
+            allEntries.push({ ...entry, path: fullPath });
+          } else if (entry.type === "tree") {
+            // Directory entry - construct full path and collect for recursive loading
+            const dirPath = parentPath ? `${parentPath}/${entry.path}` : entry.path;
+            const dirEntry = { ...entry, path: dirPath };
+            treeEntries.push(dirEntry);
+            allEntries.push(dirEntry);
+          }
+        }
+
+        // Load all directories with concurrency limit to avoid rate limits
+        if (treeEntries.length === 0) {
+          return allEntries;
+        }
+
+        // Process directories with controlled concurrency
+        const concurrency = 5;
+        const results = [];
+        for (let i = 0; i < treeEntries.length; i += concurrency) {
+          const batch = treeEntries.slice(i, i + concurrency);
+          const batchResults = await Promise.all(
+            batch.map(async (dirEntry) => {
+              try {
+                const dirTree = await fetchJSON(`https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${dirEntry.sha}`);
+                return await loadAllEntriesRecursively(dirTree.tree, dirEntry.path);
+              } catch (e) {
+                console.warn(`Failed to load directory ${dirEntry.path}:`, e);
+                return [];
+              }
+            })
+          );
+          results.push(...batchResults);
+        }
+
+        // Flatten and add all sub-entries
+        for (const subEntries of results) {
+          allEntries.push(...subEntries);
+        }
+
+        return allEntries;
+      }
+
+      function buildIndexesFromEntries(allEntries) {
         const root = { type: "tree", name: "", path: "", children: new Map() };
         state.nodeByPath.set("", root);
 
-        for (const entry of tree.tree) {
+        for (const entry of allEntries) {
           const parts = entry.path.split("/");
           let cursor = root;
           for (let i = 0; i < parts.length; i++) {
@@ -862,6 +915,7 @@
         state.fileIndex = files.sort((a, b) => a.path.localeCompare(b.path));
       }
 
+
       function iconForPath(path, isDir) {
         if (isDir) return "https://raw.githubusercontent.com/PiyushJT/PiyushJT/1cadac55bb62a80e9bfdc6cc8fb9eefce1d7eee4/icons/folder.svg";
         const ext = (path.split('.').pop() || '').toLowerCase();
@@ -883,7 +937,7 @@
           const li = document.createElement("li");
           li.innerHTML = `<span class="icon">
             <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/1cadac55bb62a80e9bfdc6cc8fb9eefce1d7eee4/icons/folder.svg" alt="📁"/></span><span>${dir.name}</span>`;
-          li.addEventListener("click", () => navigate({ view: "folder", p: dir.path }));
+          li.addEventListener("click", () => navigate({ view: "browse", p: dir.path }));
           ul.appendChild(li);
         }
       }
@@ -895,7 +949,7 @@
         const panelInner = $("panelInner");
         if (view === "home") {
           renderHome(panelInner);
-        } else if (view === "folder") {
+        } else if (view === "browse") {
           renderFolder(path, panelInner);
         } else if (view === "file") {
           renderFile(path, panelInner);
@@ -916,7 +970,7 @@
           a.addEventListener("click", () => navigate(st));
           bc.appendChild(a);
         };
-        if (view !== 'home') add("Repo", { view: "folder", p: "" });
+        if (view !== 'home') add("Repo", { view: "browse", p: "" });
         if (view === "search") {
           const span = document.createElement("span");
           span.textContent = ` / Search: ${q}`;
@@ -929,7 +983,7 @@
           acc = i === 0 ? parts[0] : `${acc}/${parts[i]}`;
           const isLast = i === parts.length - 1;
           const label = ` / ${parts[i]}`;
-          if (!isLast || view === "folder") add(label, { view: "folder", p: acc });
+          if (!isLast || view === "browse") add(label, { view: "browse", p: acc });
           else add(label, { view: "file", p: acc });
         }
       }
@@ -1009,7 +1063,7 @@
           toggleClear(homeClear, homeInput);
         }
         document.getElementById('navigateBtn').addEventListener('click', () => {
-          navigate({ view: 'folder', p: '' });
+          navigate({ view: 'browse', p: '' });
         });
         
         document.getElementById('searchBtn').addEventListener('click', () => {
@@ -1023,7 +1077,7 @@
       function renderFolder(path, container) {
         const node = state.nodeByPath.get(path || "");
         if (!node || node.type !== "tree") {
-          navigate({ view: "folder", p: "" }, true);
+          navigate({ view: "browse", p: "" }, true);
           return;
         }
 
@@ -1044,7 +1098,7 @@
           const li = document.createElement("li");
           const iconUrl = iconForPath(item.path, isDir);
           li.innerHTML = `<span class="icon"><img src="${iconUrl}" alt=""/></span><span>${item.name}</span>`;
-          li.addEventListener("click", () => navigate({ view: isDir ? "folder" : "file", p: item.path }));
+          li.addEventListener("click", () => navigate({ view: isDir ? "browse" : "file", p: item.path }));
           list.appendChild(li);
         }
 
@@ -1058,7 +1112,7 @@
       async function renderFile(path, container) {
         const node = state.nodeByPath.get(path);
         if (!node || node.type !== "blob") {
-          navigate({ view: "folder", p: "" }, true);
+          navigate({ view: "browse", p: "" }, true);
           return;
         }
         const key = `${state.defaultBranch}:${path}`;
@@ -1244,7 +1298,7 @@
           ${sn ? `<div class="snippet" style="color:var(--muted);margin-top:6px;">… ${sn} …</div>` : ""}
         `;
         hit.querySelector('.path').addEventListener('click', () => {
-          if (kind === 'folder') navigate({ view: 'folder', p: path });
+          if (kind === 'folder') navigate({ view: 'browse', p: path });
           else navigate({ view: 'file', p: path });
         });
         listEl.appendChild(hit);
