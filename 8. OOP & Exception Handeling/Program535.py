@@ -58,10 +58,7 @@ class WordPlay:
     def only(self, chars):
         lst = []
         for word in self.words:
-            for letter in word:
-                if letter not in chars:
-                    break
-            else:
+            if set(word) == set(chars):
                 lst.append(word)
                 
         return lst

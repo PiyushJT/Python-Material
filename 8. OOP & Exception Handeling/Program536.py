@@ -8,6 +8,9 @@ quantity of each item required. generate a bill and display total amount.
 
 """
 
+from statistics import quantiles
+
+
 class Store:
     def __init__(self):
         self.catalog = {}
@@ -31,9 +34,22 @@ class Store:
 
 
 store = Store()
-store.add_item("milk", 30)
-store.add_item("apple", 35)
-store.add_item("gems", 40)
 
-quantities = {"milk": 2, "apple": 3, "gems": 4}
+n = int(input("Enter no of items: "))
+items = []
+
+for i in range(n):
+
+    name = input("Enter item code: ")
+    cost = int(input("Enter price: "))
+    items.append(name)
+
+    store.add_item(name, cost)
+
+quantities = {}
+
+for item in items:
+    quantities[item] = int(input(f"Enter quantity of {item}: "))
+
+
 store.bill(quantities)
