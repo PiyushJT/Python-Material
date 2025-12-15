@@ -8,9 +8,6 @@ quantity of each item required. generate a bill and display total amount.
 
 """
 
-from statistics import quantiles
-
-
 class Store:
     def __init__(self):
         self.catalog = {}

@@ -191,7 +191,11 @@
         cursor: pointer;
         display: none;
       }
-  .clearBtn:hover { background: rgba(96,165,250,0.08); transform: translateY(-1px); }
+  .clearBtn:hover {
+        background: rgba(96,165,250,0.08);
+        /* preserve vertical centering and apply a subtle upward shift on hover */
+        transform: translateY(calc(-50% - 1px));
+      }
       .clearBtn img { width: 16px; height: 16px; opacity: 0.9; }
 
       .search input[type="search"]:focus {
@@ -240,6 +244,11 @@
 
       .tree li:hover {
         background: var(--panel-2);
+      }
+
+      .tree li.active {
+        background: rgba(96,165,250,0.18);
+        border: 1px solid rgba(96,165,250,0.5);
       }
 
       .tree .icon {
@@ -353,6 +362,20 @@
         margin: 0;
       }
 
+      /* Navigation row for Prev/Next buttons under the code block */
+      .viewer .navRow {
+        display: flex;
+        justify-content: flex-end;  /* right-align buttons */
+        align-items: center;
+        gap: 8px; /* small gap between Prev and Next buttons */
+        margin-top: 14px;
+      }
+      .viewer .navRow .btn {
+        min-width: auto;           /* no forced width */
+        justify-content: center;   /* keep icon and text close */
+        gap: 4px;                  /* tighter gap between icon and text */
+      }
+
       /* Small secondary button at bottom of code block */
       .viewer .btnSmall {
         padding: 6px 10px;
@@ -394,6 +417,43 @@
         display: flex;
         justify-content: flex-start;
         margin-top: 8px;
+      }
+
+        /* Download-all button row at bottom of page (non-home views) */
+      .downloadAllWrap {
+        margin-top: 18px;
+        display: none; /* shown only on non-home views via JS */
+        text-align: right;
+      }
+      .downloadAllBtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: linear-gradient(90deg, rgba(96,165,250,0.18), rgba(125,211,252,0.10));
+        color: #ffe4b5;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 18px rgba(15,23,42,0.6);
+        transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+      }
+      .downloadAllBtn:hover {
+        filter: brightness(1.06);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 26px rgba(15,23,42,0.8);
+      }
+      .downloadAllBtn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 16px rgba(15,23,42,0.6);
+      }
+      .downloadAllBtn .ico {
+        display: inline-flex;
+        width: 16px;
+        height: 16px;
       }
 
       /* Code block with line numbers and wrapping */
@@ -518,7 +578,13 @@
         }
 
         .crumbs {
-          margin-top: 20px;
+          margin-top: 16px;
+        }
+
+        /* Give more room to code on small screens by reducing side padding */
+        main.content {
+          padding-left: 10px;
+          padding-right: 10px;
         }
 
         .code-line {
@@ -538,6 +604,11 @@
         /* ensure main content doesn't hide beneath fixed header on mobile */
         main.content {
           padding-top: var(--mobile-header-height);
+        }
+
+        .viewer {
+          padding-left: 10px;
+          padding-right: 10px;
         }
 
       }
@@ -759,6 +830,7 @@
         <section class="panel" id="panel">
           <div id="panelInner"></div>
         </section>
+        <div class="downloadAllWrap" id="downloadAllWrap"></div>
       </main>
     </div>
 
@@ -774,6 +846,7 @@
         nodeByPath: new Map(),
         contentCache: new Map(),
         fileIndex: [],
+        programIndex: [],
         searchAbort: null,
         prefetchStarted: false
       };
@@ -818,7 +891,8 @@
         const rootTree = await fetchJSON(`https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${encodeURIComponent(state.defaultBranch)}`);
         const allEntries = await loadAllEntriesRecursively(rootTree.tree, "");
         buildIndexesFromEntries(allEntries);
-        renderRootSidebar();
+        const { view, path } = parseLocation();
+        renderSidebar(view, path);
         render(true);
         if (!state.prefetchStarted) {
           state.prefetchStarted = true;
@@ -913,6 +987,8 @@
           if (node.type === "blob") files.push(node);
         }
         state.fileIndex = files.sort((a, b) => a.path.localeCompare(b.path));
+        // Index of Python "program" files for next/prev navigation
+        state.programIndex = state.fileIndex.filter(f => /\.py$/i.test(f.path));
       }
 
 
@@ -928,23 +1004,95 @@
         return map[ext] || 'https://raw.githubusercontent.com/PiyushJT/PiyushJT/00ca33b80496d6ca543332f53b314e62ddf3e37b/icons/file.svg';
       }
 
-      function renderRootSidebar() {
-        const rootNode = state.nodeByPath.get("");
+      function getParentPath(path) {
+        if (!path) return "";
+        const parts = path.split("/");
+        parts.pop();
+        return parts.join("/");
+      }
+
+      function renderSidebar(view, path) {
         const ul = $("rootTree");
+        if (!ul) return;
+        let dirPath = "";
+        let highlightPath = "";
+
+        if (view === "browse" || view === "file") {
+          const node = state.nodeByPath.get(path || "");
+          if (node) {
+            if (node.type === "tree") {
+              const currentFolder = node.path || "";
+              const parent = getParentPath(currentFolder) || "";
+              dirPath = parent;
+              highlightPath = currentFolder;
+            } else {
+              const parent = getParentPath(node.path) || "";
+              dirPath = parent;
+              // Highlight the currently opened file within its parent folder
+              highlightPath = node.path;
+            }
+          }
+        } else {
+          // home & search -> show root level
+          dirPath = "";
+        }
+
+        const dirNode = state.nodeByPath.get(dirPath) || state.nodeByPath.get("");
         ul.innerHTML = "";
-        const dirs = Array.from(rootNode.children.values()).filter(n => n.type === "tree").sort((a, b) => a.name.localeCompare(b.name));
-        for (const dir of dirs) {
+
+        let children = Array.from(dirNode.children.values());
+        // When root directory itself is opened (home, search, or browsing root),
+        // only show folders. For files under root, show all items in root.
+        const isRootDirView =
+          !dirPath && (view === "home" || view === "search" || (view === "browse" && !path));
+        if (isRootDirView) {
+          children = children.filter(n => n.type === "tree");
+        }
+        children = children.sort((a, b) => a.name.localeCompare(b.name));
+
+        for (const item of children) {
           const li = document.createElement("li");
-          li.innerHTML = `<span class="icon">
-            <img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/1cadac55bb62a80e9bfdc6cc8fb9eefce1d7eee4/icons/folder.svg" alt="📁"/></span><span>${dir.name}</span>`;
-          li.addEventListener("click", () => navigate({ view: "browse", p: dir.path }));
+          const iconUrl = iconForPath(item.path, item.type === "tree");
+          li.innerHTML = `<span class="icon"><img src="${iconUrl}" alt=""/></span><span>${item.name}</span>`;
+          if (highlightPath && item.path === highlightPath) {
+            li.classList.add("active");
+          }
+          li.addEventListener("click", () => {
+            navigate({ view: item.type === "tree" ? "browse" : "file", p: item.path });
+          });
           ul.appendChild(li);
         }
+      }
+
+      function renderDownloadAll(view) {
+        const wrap = $("downloadAllWrap");
+        if (!wrap) return;
+        if (view === "home") {
+          wrap.style.display = "none";
+          wrap.innerHTML = "";
+          return;
+        }
+        const branch = state.defaultBranch || "main";
+        const zipUrl = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${encodeURIComponent(branch)}.zip`;
+        wrap.style.display = "block";
+        wrap.innerHTML = `
+          <a href="${zipUrl}" class="downloadAllBtn">
+            <span>Download all codes (ZIP)</span>
+            <span class="ico">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3a1 1 0 0 1 1 1v9.086l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4A1 1 0 0 1 8.707 10.793L11 13.086V4a1 1 0 0 1 1-1z"/>
+                <path d="M5 18a1 1 0 0 0 0 2h14a1 1 0 1 0 0-2H5z"/>
+              </svg>
+            </span>
+          </a>
+        `;
       }
 
       function render(replacing = false) {
         const { view, path, q } = parseLocation();
         document.body.classList.toggle('home', view === 'home');
+        renderSidebar(view, path);
+        renderDownloadAll(view);
         renderBreadcrumbs(view, path, q);
         const panelInner = $("panelInner");
         if (view === "home") {
@@ -1138,6 +1286,23 @@
         viewer.innerHTML = `<div class="note">${fileName}</div>`;
         const toolbar = document.createElement("div");
         toolbar.className = "toolbar";
+
+        // Determine previous and next program paths (Python files only)
+        let prevPath = null;
+        let nextPath = null;
+        const indexSource = (state.programIndex && state.programIndex.length > 0) ? state.programIndex : state.fileIndex;
+        if (indexSource && indexSource.length > 0) {
+          const currentIndex = indexSource.findIndex(f => f.path === path);
+          if (currentIndex !== -1) {
+            if (currentIndex > 0) {
+              prevPath = indexSource[currentIndex - 1].path;
+            }
+            if (currentIndex < indexSource.length - 1) {
+              nextPath = indexSource[currentIndex + 1].path;
+            }
+          }
+        }
+
         const copyBtn = document.createElement("button");
         copyBtn.className = "btn";
         copyBtn.type = "button";
@@ -1159,7 +1324,7 @@
               ta.focus();
               ta.select();
               document.execCommand("copy");
-              document.body.removeChild(ta);
+            document.body.removeChild(ta);
             }
 
             // Show tick icon and 'Copied' text in lime color
@@ -1177,6 +1342,7 @@
           }
         });
         toolbar.appendChild(copyBtn);
+
         const codeBlock = document.createElement("div");
         codeBlock.className = "codeblock";
         const isPy = /\.py$/i.test(path);
@@ -1197,6 +1363,44 @@
         viewer.appendChild(toolbar);
         viewer.appendChild(codeBlock);
         
+        // Navigation row (Prev / Next) below the code block
+        const navRow = document.createElement("div");
+        navRow.className = "navRow";
+
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "btn";
+        prevBtn.type = "button";
+        // Simple left chevron icon for previous
+        prevBtn.innerHTML = `<span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 4.5a1 1 0 0 0-1.42 0l-6 6a1 1 0 0 0 0 1.42l6 6a1 1 0 0 0 1.42-1.42L10.91 12l4.59-4.59A1 1 0 0 0 15.5 4.5z"/></svg></span><span>Prev</span>`;
+        if (!prevPath) {
+          prevBtn.disabled = true;
+          prevBtn.style.opacity = "0.4";
+          prevBtn.style.cursor = "default";
+        } else {
+          prevBtn.addEventListener("click", () => {
+            navigate({ view: "file", p: prevPath });
+          });
+        }
+
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "btn";
+        nextBtn.type = "button";
+        // Text first, simple right chevron icon on the right
+        nextBtn.innerHTML = `<span>Next</span><span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 4.5a1 1 0 0 1 1.42 0l6 6a1 1 0 0 1 0 1.42l-6 6a1 1 0 1 1-1.42-1.42L13.09 12 8.5 7.41A1 1 0 0 1 8.5 4.5z"/></svg></span>`;
+        if (!nextPath) {
+          nextBtn.disabled = true;
+          nextBtn.style.opacity = "0.4";
+          nextBtn.style.cursor = "default";
+        } else {
+          nextBtn.addEventListener("click", () => {
+            navigate({ view: "file", p: nextPath });
+          });
+        }
+
+        navRow.appendChild(prevBtn);
+        navRow.appendChild(nextBtn);
+        viewer.appendChild(navRow);
+        
         // Add small secondary button at bottom of code block
         const btnContainer = document.createElement("div");
         btnContainer.className = "btnContainer";
@@ -1205,7 +1409,7 @@
         bottomBtn.href = `https://github.com/${OWNER}/${REPO}`;
         bottomBtn.target = "_blank";
         bottomBtn.rel = "noopener noreferrer";
-        bottomBtn.innerHTML = `<span class="ico"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg></span><span>Contribute or correct the code</span>`;
+        bottomBtn.innerHTML = `<span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 .5C5.65.5.5 5.65.5 12.02c0 5.09 3.29 9.4 7.86 10.93.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.35-1.3-1.7-1.3-1.7-1.06-.73.08-.72.08-.72 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.74 1.27 3.4.98.11-.75.41-1.26.75-1.55-2.55-.29-5.23-1.28-5.23-5.71 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11 11 0 0 1 2.9-.39c.99 0 1.99.13 2.92.39 2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.75.8 1.2 1.83 1.2 3.09 0 4.44-2.69 5.41-5.25 5.69.42.37.8 1.1.8 2.22 0 1.6-.01 2.88-.01 3.27 0 .31.21.68.8.56A10.53 10.53 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg></span><span>Contribute or correct the code</span>`;
         btnContainer.appendChild(bottomBtn);
         viewer.appendChild(btnContainer);
         
@@ -1236,7 +1440,7 @@
         src = src.replace(/((?:"""|''')[\s\S]*?(?:"""|'''|$))/g, (m) => put(`<span class="tok-string">${m}</span>`));
 
         // Single/double quoted strings
-        src = src.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, (m) => put(`<span class="tok-string">${m}</span>`));
+        src = src.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, (m) => put(`<span class="tok-string">${m}</span>`));
 
         // Comments
         src = src.replace(/(^|\s)(#.*?$)/gm, (m, p1, p2) => `${p1}${put(`<span class=\"tok-comment\">${p2}</span>`)}`);
@@ -1500,7 +1704,7 @@
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
           a.setAttribute('aria-label', 'View or contribute on GitHub');
-          a.innerHTML = `<svg width="40" height="40" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>`;
+          a.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 .5C5.65.5.5 5.65.5 12.02c0 5.09 3.29 9.4 7.86 10.93.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.35-1.3-1.7-1.3-1.7-1.06-.73.08-.72.08-.72 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.74 1.27 3.4.98.11-.75.41-1.26.75-1.55-2.55-.29-5.23-1.28-5.23-5.71 0-1.26.45-2.29 1.2-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11 11 0 0 1 2.9-.39c.99 0 1.99.13 2.92.39 2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.75.8 1.2 1.83 1.2 3.09 0 4.44-2.69 5.41-5.25 5.69.42.37.8 1.1.8 2.22 0 1.6-.01 2.88-.01 3.27 0 .31.21.68.8.56A10.53 10.53 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>`;
           wrap.appendChild(a);
           document.body.appendChild(wrap);
 
