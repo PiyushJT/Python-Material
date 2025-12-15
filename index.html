@@ -1422,7 +1422,9 @@
           prevBtn.style.cursor = "default";
         } else {
           prevBtn.addEventListener("click", () => {
-            navigate({ view: "file", p: prevPath });
+            // Use replace navigation so browser back goes to previous context (folder/search),
+            // not through every intermediate program visited via Prev/Next.
+            navigate({ view: "file", p: prevPath }, true);
           });
         }
 
@@ -1437,7 +1439,9 @@
           nextBtn.style.cursor = "default";
         } else {
           nextBtn.addEventListener("click", () => {
-            navigate({ view: "file", p: nextPath });
+            // Use replace navigation so browser back goes to previous context (folder/search),
+            // not through every intermediate program visited via Prev/Next.
+            navigate({ view: "file", p: nextPath }, true);
           });
         }
 
