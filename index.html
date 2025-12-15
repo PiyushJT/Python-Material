@@ -741,6 +741,36 @@
         margin-top: 14px;
       }
 
+      .homeQuizWrap {
+        margin-top: 18px;
+        text-align: center;
+      }
+      .btnQuiz {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 24px;
+        border-radius: 999px;
+        border: 1px solid rgba(34,197,94,0.5);
+        background: linear-gradient(90deg, rgba(34,197,94,0.18), rgba(34,197,94,0.10));
+        color: #bbf7d0;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        box-shadow: 0 4px 18px rgba(15,23,42,0.6);
+        transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+      }
+      .btnQuiz:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 26px rgba(15,23,42,0.8);
+      }
+      .btnQuiz:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 16px rgba(15,23,42,0.6);
+      }
+
       @media (max-width: 860px) {
         .homeActions {
           flex-direction: column;
@@ -837,6 +867,8 @@
     <script>
       const OWNER = "PiyushJT";
       const REPO = "Python-Material";
+      // TODO: Replace with your actual MCQ quiz site URL if different
+      const QUIZ_URL = "https://dwarkesh777.github.io/PB-MCQ/";
       
       const TICK_ICON_URL = "https://raw.githubusercontent.com/PiyushJT/PiyushJT/main/icons/tick.svg";
 
@@ -1195,6 +1227,18 @@
         card.appendChild(divider);
         card.appendChild(actions);
         wrap.appendChild(card);
+
+        // MCQ quiz button below the main card
+        const quizWrap = document.createElement('div');
+        quizWrap.className = 'homeQuizWrap';
+        const quizBtn = document.createElement('a');
+        quizBtn.className = 'btnQuiz';
+        quizBtn.href = QUIZ_URL;
+        quizBtn.target = '_blank';
+        quizBtn.rel = 'noopener noreferrer';
+        quizBtn.textContent = 'Practice Python MCQs';
+        quizWrap.appendChild(quizBtn);
+        wrap.appendChild(quizWrap);
         container.innerHTML = '';
         container.appendChild(wrap);
 
