@@ -54,11 +54,13 @@ class Pizza:
         if size not in self.SIZES:
             raise Error(f"Invalid size: {size}")
 
-        if any(t not in self.TOPPINGS for t in toppings):
-            raise Error("One or more toppings not available")
+        for t in toppings:
+            if t not in self.TOPPINGS:
+                raise Error("One or more toppings not available")
 
-        if any(c not in self.CHEESE for c in cheese):
-            raise Error("Cheese selection not available")
+        for c in cheese:
+            if c not in self.CHEESE:
+                raise Error("Cheese selection not available")
 
         self.size = size
         self.toppings = toppings
