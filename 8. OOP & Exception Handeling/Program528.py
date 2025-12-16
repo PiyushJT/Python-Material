@@ -6,10 +6,7 @@ width and a method which will compute the area of a rectangle.
 """
 
 class Rectangle():
-
-    width = None
-    length = None
-
+    
     def __init__(self, width, length):
         self.length = length
         self.width = width

@@ -8,9 +8,6 @@ class and print the original and modified values of the said attributes.
 
 class Student():
 
-    student_name = None
-    marks = None
-
     def __init__(self, name, marks):
         self.student_name = name
         self.marks = marks

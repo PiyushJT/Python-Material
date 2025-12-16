@@ -11,8 +11,6 @@ from math import pi
 
 class Circle():
 
-    radius = None
-
     def __init__(self, rad):
         self.radius = rad
 
