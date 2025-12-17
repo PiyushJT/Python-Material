@@ -16,20 +16,18 @@ There are five methods that should be implemented:
 
 class SQ():
 
-    data = []
-
-
     # Constructores
     def __init__(self, data):
-        self.data.append(data)
+        self.data = [data]
     
     def __init__(self):
-        pass
+        self.data = []
 
     def shift(self):
         frst = 0
         try:
             frst = self.data[0]
+            self.data = self.data[1:]
         except:
             print("No Data found!")
         return frst
