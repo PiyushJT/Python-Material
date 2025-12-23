@@ -11,8 +11,6 @@ class.
 
 """
 
-from itertools import count
-
 
 class Book:
 
@@ -56,8 +54,6 @@ course.print_data()
 
 
 """
-
-Output:
 
 
 Name: Python Programming

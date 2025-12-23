@@ -494,6 +494,48 @@
         font-size: 22px;
       }
 
+      .viewer .problem-statement {
+        background: rgba(96,165,250,0.08);
+        border: 1px solid rgba(96,165,250,0.2);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-bottom: 20px;
+        line-height: 1.7;
+        color: #d7eefc;
+        white-space: pre-wrap;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .viewer .problem-statement-title {
+        color: var(--accent-2);
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .viewer .output-section {
+        background: rgba(34,197,94,0.08);
+        border: 1px solid rgba(34,197,94,0.2);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-top: 20px;
+        line-height: 1.7;
+        color: #d7eefc;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .viewer .output-title {
+        color: #22c55e;
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
       .results {
         padding: 8px 10px 16px 10px;
       }
@@ -851,7 +893,7 @@
       </header>
 
       <aside class="sidebar">
-        <div class="section">Folders</div>
+        <div class="section" id="sidebarSection">Folders</div>
         <ul class="tree" id="rootTree"></ul>
       </aside>
 
@@ -1046,6 +1088,7 @@
       function renderSidebar(view, path) {
         const ul = $("rootTree");
         if (!ul) return;
+        const sectionDiv = $("sidebarSection");
         let dirPath = "";
         let highlightPath = "";
 
@@ -1069,14 +1112,24 @@
           dirPath = "";
         }
 
+        // Update sidebar section title with parent folder name
+        if (sectionDiv) {
+          if (dirPath) {
+            const parentParts = dirPath.split("/");
+            const parentName = parentParts[parentParts.length - 1] || dirPath;
+            sectionDiv.textContent = parentName;
+          } else {
+            sectionDiv.textContent = "Folders";
+          }
+        }
+
         const dirNode = state.nodeByPath.get(dirPath) || state.nodeByPath.get("");
         ul.innerHTML = "";
 
         let children = Array.from(dirNode.children.values());
-        // When root directory itself is opened (home, search, or browsing root),
-        // only show folders. For files under root, show all items in root.
-        const isRootDirView =
-          !dirPath && (view === "home" || view === "search" || (view === "browse" && !path));
+        // When showing root directory in sidebar (dirPath is empty),
+        // only show folders. For subdirectories, show all items.
+        const isRootDirView = !dirPath;
         if (isRootDirView) {
           children = children.filter(n => n.type === "tree");
         }
@@ -1351,6 +1404,17 @@
         copyBtn.className = "btn";
         copyBtn.type = "button";
         copyBtn.innerHTML = `<span class="ico"><img src="https://raw.githubusercontent.com/PiyushJT/PiyushJT/c91559feee6d399b3e63dbd996d019ae4b7c49f0/icons/copy.svg" style="width:18px;height:18px;opacity:.9;"/></span><span>Copy code</span>`;
+        
+        const isPy = /\.py$/i.test(path);
+        let parsedContent = null;
+        let codeContent = content;
+
+        // Parse Python files to extract problem statement, code, and output
+        if (isPy) {
+          parsedContent = parsePythonFile(content);
+          codeContent = parsedContent.code;
+        }
+
         copyBtn.addEventListener("click", async () => {
           // Prevent repeated rapid clicks
           if (copyBtn.__copiedLock) return;
@@ -1358,10 +1422,10 @@
           const originalHtml = copyBtn.innerHTML;
           try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(content);
+              await navigator.clipboard.writeText(codeContent);
             } else {
               const ta = document.createElement("textarea");
-              ta.value = content;
+              ta.value = codeContent;
               ta.style.position = "fixed";
               ta.style.opacity = "0";
               document.body.appendChild(ta);
@@ -1386,11 +1450,25 @@
           }
         });
         toolbar.appendChild(copyBtn);
+        viewer.appendChild(toolbar);
+
+        // Add problem statement section for Python files
+        if (isPy && parsedContent && parsedContent.problemStatement) {
+          const problemDiv = document.createElement("div");
+          problemDiv.className = "problem-statement";
+          const problemTitle = document.createElement("div");
+          problemTitle.className = "problem-statement-title";
+          problemTitle.textContent = "Problem Statement";
+          problemDiv.appendChild(problemTitle);
+          const problemText = document.createElement("div");
+          problemText.textContent = parsedContent.problemStatement;
+          problemDiv.appendChild(problemText);
+          viewer.appendChild(problemDiv);
+        }
 
         const codeBlock = document.createElement("div");
         codeBlock.className = "codeblock";
-        const isPy = /\.py$/i.test(path);
-        const lines = isPy ? highlightPythonLines(content) : escapeHtml(content).split("\n");
+        const lines = isPy ? highlightPythonLines(codeContent) : escapeHtml(codeContent).split("\n");
         for (let i = 0; i < lines.length; i++) {
           const row = document.createElement("div");
           row.className = "code-line";
@@ -1404,8 +1482,21 @@
           row.appendChild(code);
           codeBlock.appendChild(row);
         }
-        viewer.appendChild(toolbar);
         viewer.appendChild(codeBlock);
+
+        // Add output section for Python files
+        if (isPy && parsedContent && parsedContent.output) {
+          const outputDiv = document.createElement("div");
+          outputDiv.className = "output-section";
+          const outputTitle = document.createElement("div");
+          outputTitle.className = "output-title";
+          outputTitle.textContent = "Output";
+          outputDiv.appendChild(outputTitle);
+          const outputText = document.createElement("div");
+          outputText.textContent = parsedContent.output;
+          outputDiv.appendChild(outputText);
+          viewer.appendChild(outputDiv);
+        }
         
         // Navigation row (Prev / Next) below the code block
         const navRow = document.createElement("div");
@@ -1470,6 +1561,142 @@
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
+      }
+
+      function parsePythonFile(content) {
+        const lines = content.split('\n');
+        let problemStatement = null;
+        let output = null;
+        let codeLines = [];
+        let inDocstring = false;
+        let docstringType = null; // '"""' or "'''"
+        let docstringStart = -1;
+        let docstringContent = [];
+        let firstDocstringFound = false;
+        let outputDocstringIndex = -1;
+        const docstrings = [];
+
+        // First pass: find all docstrings
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Check for start of docstring
+          if (!inDocstring) {
+            const tripleDouble = line.indexOf('"""');
+            const tripleSingle = line.indexOf("'''");
+            
+            if (tripleDouble !== -1) {
+              inDocstring = true;
+              docstringType = '"""';
+              docstringStart = i;
+              const afterStart = line.substring(tripleDouble + 3);
+              if (afterStart.includes('"""')) {
+                // Single line docstring
+                const endIdx = afterStart.indexOf('"""');
+                const content = afterStart.substring(0, endIdx);
+                docstrings.push({
+                  start: i,
+                  end: i,
+                  content: content,
+                  fullLine: line
+                });
+                inDocstring = false;
+                docstringType = null;
+              } else {
+                docstringContent = [afterStart];
+              }
+            } else if (tripleSingle !== -1) {
+              inDocstring = true;
+              docstringType = "'''";
+              docstringStart = i;
+              const afterStart = line.substring(tripleSingle + 3);
+              if (afterStart.includes("'''")) {
+                // Single line docstring
+                const endIdx = afterStart.indexOf("'''");
+                const content = afterStart.substring(0, endIdx);
+                docstrings.push({
+                  start: i,
+                  end: i,
+                  content: content,
+                  fullLine: line
+                });
+                inDocstring = false;
+                docstringType = null;
+              } else {
+                docstringContent = [afterStart];
+              }
+            }
+          } else {
+            // Inside docstring, check for end
+            const endIdx = line.indexOf(docstringType);
+            if (endIdx !== -1) {
+              docstringContent.push(line.substring(0, endIdx));
+              const content = docstringContent.join('\n');
+              docstrings.push({
+                start: docstringStart,
+                end: i,
+                content: content,
+                fullLine: null
+              });
+              inDocstring = false;
+              docstringType = null;
+              docstringContent = [];
+            } else {
+              docstringContent.push(line);
+            }
+          }
+        }
+
+        // Determine problem statement (first docstring)
+        if (docstrings.length > 0) {
+          const firstDoc = docstrings[0];
+          problemStatement = firstDoc.content.trim();
+        }
+
+        // Determine output (last docstring, if different from first)
+        if (docstrings.length > 1) {
+          // Multiple docstrings: first is problem, last is output
+          const lastDoc = docstrings[docstrings.length - 1];
+          // Use the full content of the last docstring as output
+          output = lastDoc.content.trim();
+          outputDocstringIndex = docstrings.length - 1;
+        }
+
+        // Build code lines (excluding problem statement and output docstrings)
+        const excludedRanges = [];
+        if (problemStatement && docstrings.length > 0) {
+          excludedRanges.push({ start: docstrings[0].start, end: docstrings[0].end });
+        }
+        if (output && outputDocstringIndex >= 0) {
+          excludedRanges.push({ start: docstrings[outputDocstringIndex].start, end: docstrings[outputDocstringIndex].end });
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+          let shouldExclude = false;
+          for (const range of excludedRanges) {
+            if (i >= range.start && i <= range.end) {
+              shouldExclude = true;
+              break;
+            }
+          }
+          if (!shouldExclude) {
+            codeLines.push(lines[i]);
+          }
+        }
+
+        // Clean up code lines (remove leading/trailing empty lines)
+        while (codeLines.length > 0 && codeLines[0].trim() === '') {
+          codeLines.shift();
+        }
+        while (codeLines.length > 0 && codeLines[codeLines.length - 1].trim() === '') {
+          codeLines.pop();
+        }
+
+        return {
+          problemStatement: problemStatement,
+          code: codeLines.join('\n'),
+          output: output
+        };
       }
 
       function highlightPythonLines(text) {
