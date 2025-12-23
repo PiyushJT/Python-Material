@@ -225,6 +225,15 @@
         color: var(--muted);
       }
 
+      .sidebar .section.clickable {
+        cursor: pointer;
+        transition: color 0.15s ease;
+      }
+
+      .sidebar .section.clickable:hover {
+        color: var(--accent);
+      }
+
       .tree {
         list-style: none;
         margin: 0;
@@ -323,6 +332,9 @@
         position: relative;
         background: rgba(255,255,255,0.01);
         border-radius: 10px;
+        /* Keep the code card at a fixed, viewport-based height and scroll its contents */
+        max-height: calc(100dvh - 180px);
+        overflow-y: auto;
       }
 
       .viewer .toolbar {
@@ -651,6 +663,8 @@
         .viewer {
           padding-left: 10px;
           padding-right: 10px;
+          /* On mobile, account for the fixed header so the card fits the screen */
+          max-height: calc(100dvh - var(--mobile-header-height) - 40px);
         }
 
       }
@@ -1114,12 +1128,26 @@
 
         // Update sidebar section title with parent folder name
         if (sectionDiv) {
+          // Remove any existing click handlers by cloning (removes event listeners)
+          const oldClickHandler = sectionDiv._clickHandler;
+          if (oldClickHandler) {
+            sectionDiv.removeEventListener("click", oldClickHandler);
+          }
+          
           if (dirPath) {
             const parentParts = dirPath.split("/");
             const parentName = parentParts[parentParts.length - 1] || dirPath;
             sectionDiv.textContent = parentName;
+            sectionDiv.classList.add("clickable");
+            const clickHandler = () => {
+              navigate({ view: "browse", p: dirPath });
+            };
+            sectionDiv.addEventListener("click", clickHandler);
+            sectionDiv._clickHandler = clickHandler; // Store reference for cleanup
           } else {
             sectionDiv.textContent = "Folders";
+            sectionDiv.classList.remove("clickable");
+            sectionDiv._clickHandler = null;
           }
         }
 
