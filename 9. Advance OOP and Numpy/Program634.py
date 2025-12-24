@@ -1,0 +1,70 @@
+"""
+
+Create a class called Student, having name and email as its data members
+and _init_(self, name, email) and putdata(self) as bound methods.
+The _init_ function should assign the values passed as parameters
+to the requisite variables.
+The putdata function should display the data of the student.
+Create another class called PhDguide having name, email, and
+students as its data members. Here, the students variable
+is the list of students under the guide. The PhDguide class
+should have four bound methods: _init_, putdata, add, and remove.
+The _init_ method should initialize the variables, the
+putdata should show the data of the guide, include the list of students,
+the add method should add a student to the list of
+students of the guide and the remove function should remove the student
+(if the student exists in the list of students of
+that guide) from the list of students.
+
+⚠️ Bad class architecture
+
+"""
+
+class Student:
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
+
+    def putdata(self):
+        print(f"Name: {self.name}, Email: {self.email}")
+
+    def __repr__(self):
+        return f"Student(name='{self.name}', email='{self.email}')"
+
+
+class PhDguide:
+    def __init__(self, name, email, students=[]):
+        self.name = name
+        self.email = email
+        self.students = students
+
+    def putdata(self):
+        print(f"Name: {self.name}, Email: {self.email}")
+        print(f"Students: {self.students}")
+
+    def add(self, student):
+        self.students.append(student)
+
+    def remove(self, student):
+        if student in self.students:
+            self.students.remove(student)
+        else:
+            print(f"Student {student.name} not found in the list of students")
+
+student1 = Student("John Doe", "john.doe@example.com")
+student2 = Student("Jane Doe", "jane.doe@example.com")
+
+phdguide = PhDguide("Dr. John Doe", "john.doe@example.com", [student1, student2])
+phdguide.putdata()
+phdguide.add(Student("Jim Doe", "jim.doe@example.com"))
+phdguide.remove(student2)
+phdguide.putdata()
+
+"""
+
+Name: Dr. John Doe, Email: john.doe@example.com
+Students: [Student(name='John Doe', email='john.doe@example.com'), Student(name='Jane Doe', email='jane.doe@example.com')]
+Name: Dr. John Doe, Email: john.doe@example.com
+Students: [Student(name='John Doe', email='john.doe@example.com'), Student(name='Jim Doe', email='jim.doe@example.com')]
+
+"""
