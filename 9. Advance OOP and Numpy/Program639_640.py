@@ -1,6 +1,7 @@
 """
 
 639. Write a program to find the distance between two points in cartesian cordinate system
+640. Write a program to find the slope between two points in cartesian cordinate system 
 
 """
 
