@@ -19,6 +19,9 @@ print("Min from axis 1:", np.min(arrY))
 
 """
 
+[[34 43 73]
+ [82 22 12]
+ [53 94 66]]
 Max from axis 0: 82
 Min from axis 1: 34
 
